@@ -15,7 +15,8 @@ def calculate_edge_weight(source_ntype, age_factor):
     maturation_factor = age_factor
     return round(polarity * synaptic_strength * maturation_factor, 3)
 
-def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
+# FIX 1: Set default n_immature=0 for a clean, mature baseline graph
+def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
     """Constructs the Directed Weighted Graph G = (V, E)"""
     G = nx.DiGraph()
     node_id = 0
@@ -41,8 +42,10 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
     # Rule 1: DG -> CA3
     for u in regions['DG']:
         u_data = G.nodes[u]
+        # Only allow mature nodes to project outward
         if u_data['ntype'] == 'excitatory' and u_data['age'] >= 0.5:
-            targets = random.sample(regions['CA3'], k=min(4, len(regions['CA3'])))
+            # FIX 2: Increased k from 4 to 8 to boost baseline connectivity strength
+            targets = random.sample(regions['CA3'], k=min(8, len(regions['CA3'])))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -52,7 +55,8 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
         u_data = G.nodes[u]
         if u_data['ntype'] == 'excitatory':
             possible_targets = [v for v in regions['CA3'] if v != u]
-            targets = random.sample(possible_targets, k=min(6, len(possible_targets)))
+            # FIX 2: Increased k from 6 to 10 to ensure a robust recurrent core
+            targets = random.sample(possible_targets, k=min(10, len(possible_targets)))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -61,7 +65,8 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
     for u in regions['CA3']:
         u_data = G.nodes[u]
         if u_data['ntype'] == 'excitatory':
-            targets = random.sample(regions['CA1'], k=min(5, len(regions['CA1'])))
+            # FIX 2: Increased k from 5 to 8 to avoid information bottlenecks
+            targets = random.sample(regions['CA1'], k=min(8, len(regions['CA1'])))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -72,7 +77,8 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
         excitatory_targets = [n for n in node_list if G.nodes[n]['ntype'] == 'excitatory']
         for inh_node in inhibitory_hubs:
             inh_data = G.nodes[inh_node]
-            targets = random.sample(excitatory_targets, k=min(5, len(excitatory_targets)))
+            # FIX 2: Increased k from 5 to 10 so interneurons adequately cover local pools
+            targets = random.sample(excitatory_targets, k=min(10, len(excitatory_targets)))
             for v in targets:
                 weight = calculate_edge_weight(inh_data['ntype'], inh_data['age'])
                 G.add_edge(inh_node, v, weight=weight)
@@ -92,47 +98,37 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=5):
 def plot_and_save_graph(G, regions, immature_nodes):
     """Generates a clean layered layout plot and saves it as an image."""
     plt.figure(figsize=(12, 8))
-    
-    # Define a clean layout position dictionary (X-axis split by structural layers)
     pos = {}
     
-    # Distribute DG nodes along x=0
     for i, n in enumerate(regions['DG']):
-        # separate standard mature DG vs immature nodes slightly on X
         x_offset = -0.1 if n in immature_nodes else 0.0
         pos[n] = (x_offset, i / len(regions['DG']))
         
-    # Distribute CA3 nodes along x=1
     for i, n in enumerate(regions['CA3']):
         pos[n] = (1.0, i / len(regions['CA3']))
         
-    # Distribute CA1 nodes along x=2
     for i, n in enumerate(regions['CA1']):
         pos[n] = (2.0, i / len(regions['CA1']))
 
-    # Group colors based on node identities 
     colors = []
     sizes = []
     for n in G.nodes():
         node_data = G.nodes[n]
         if n in immature_nodes:
-            colors.append('#E6AD12')  # Gold for newborn integration nodes
+            colors.append('#E6AD12')
             sizes.append(120)
         elif node_data['ntype'] == 'inhibitory':
-            colors.append('#C83737')  # Red for local inhibitory interneurons
+            colors.append('#C83737')
             sizes.append(60)
         else:
-            # Differentiate base layers by standard hue shifts
             mapping = {'DG': '#4A69BD', 'CA3': '#10AC84', 'CA1': '#5f27cd'}
             colors.append(mapping[node_data['region']])
             sizes.append(80)
 
-    # Draw the structural components cleanly
     nx.draw_networkx_nodes(G, pos, node_color=colors, node_size=sizes, alpha=0.9)
     nx.draw_networkx_edges(G, pos, arrowstyle='->', arrowsize=8, 
                            edge_color='#D2D2D2', width=0.4, alpha=0.4)
 
-    # Build clear structural annotation legend patches
     legend_elements = [
         mpatches.Patch(color='#4A69BD', label='Mature DG Excitatory'),
         mpatches.Patch(color='#10AC84', label='Mature CA3 Excitatory'),
@@ -144,7 +140,6 @@ def plot_and_save_graph(G, regions, immature_nodes):
     plt.title("Hippocampal Neural Graph Model (Structural Layout Framework)", fontsize=14, fontweight='bold')
     plt.axis('off')
     
-    # Save the output image file directly into your workspace directory
     output_filename = "hippocampus_layout.png"
     plt.savefig(output_filename, dpi=300, bbox_inches='tight')
     plt.close()
@@ -152,7 +147,19 @@ def plot_and_save_graph(G, regions, immature_nodes):
 
 # --- EXECUTION PROFILE ---
 if __name__ == "__main__":
+    # Clean baseline configuration initialization
     hippocampus, layer_map, new_cells = create_hippocampal_graph()
     
     # Execute visualization generation 
     plot_and_save_graph(hippocampus, layer_map, new_cells)
+    
+    # Verification script for Graph Metrics 
+    # Convert to undirected graph for classical connectivity metrics
+    G_undirected = hippocampus.to_undirected()
+    
+    print("\n--- GRAPH CONNECTIVITY PROFILE VERIFICATION ---")
+    print(f"Minimum Degree δ(G): {min(dict(G_undirected.degree()).values())}")
+    print(f"Is Connected?        {nx.is_connected(G_undirected)}")
+    if nx.is_connected(G_undirected):
+        print(f"Node Connectivity κ(G): {nx.node_connectivity(G_undirected)}")
+        print(f"Edge Connectivity λ(G): {nx.edge_connectivity(G_undirected)}")
