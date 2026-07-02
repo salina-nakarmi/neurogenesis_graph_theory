@@ -1,23 +1,42 @@
+"""
+graph_model.py — Days 3-4 deliverable.
+
+Builds the baseline hippocampal graph G=(V,E,w): 100 nodes (40 DG / 30 CA3
+/ 30 CA1), directed weighted edges wired by 5 biological rules (DG->CA3,
+CA3 recurrent, CA3->CA1, local inhibition, newborn feeder inputs). Every
+other file (connectivity.py, simulation.py, functional_simulation.py)
+imports create_hippocampal_graph() from here — this is the single source
+of truth for "what the baseline graph looks like". Fan-out counts and
+weight ranges come from config.GRAPH.
+"""
+
 import networkx as nx
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+from config import GRAPH
+
 # For reproducibility across team members
-random.seed(42)
-np.random.seed(42)
+random.seed(GRAPH["seed"])
+np.random.seed(GRAPH["seed"])
 
 def calculate_edge_weight(source_ntype, age_factor):
     """Total Weight = Polarity * Synaptic Strength * Maturation Factor"""
     polarity = 1.0 if source_ntype == 'excitatory' else -1.0
-    synaptic_strength = random.uniform(0.5, 0.9)
+    synaptic_strength = random.uniform(
+        GRAPH["synaptic_strength_min"], GRAPH["synaptic_strength_max"]
+    )
     maturation_factor = age_factor
     return round(polarity * synaptic_strength * maturation_factor, 3)
 
-# FIX 1: Set default n_immature=0 for a clean, mature baseline graph
-def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
-    """Constructs the Directed Weighted Graph G = (V, E)"""
+def create_hippocampal_graph(n_DG=None, n_CA3=None, n_CA1=None, n_immature=None):
+    """Constructs the Directed Weighted Graph G = (V, E). Defaults come from config.GRAPH."""
+    n_DG = GRAPH["n_DG"] if n_DG is None else n_DG
+    n_CA3 = GRAPH["n_CA3"] if n_CA3 is None else n_CA3
+    n_CA1 = GRAPH["n_CA1"] if n_CA1 is None else n_CA1
+    n_immature = GRAPH["n_immature"] if n_immature is None else n_immature
     G = nx.DiGraph()
     node_id = 0
     regions = {'DG': [], 'CA3': [], 'CA1': []}
@@ -44,8 +63,7 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
         u_data = G.nodes[u]
         # Only allow mature nodes to project outward
         if u_data['ntype'] == 'excitatory' and u_data['age'] >= 0.5:
-            # FIX 2: Increased k from 4 to 8 to boost baseline connectivity strength
-            targets = random.sample(regions['CA3'], k=min(8, len(regions['CA3'])))
+            targets = random.sample(regions['CA3'], k=min(GRAPH['dg_ca3_out'], len(regions['CA3'])))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -55,8 +73,7 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
         u_data = G.nodes[u]
         if u_data['ntype'] == 'excitatory':
             possible_targets = [v for v in regions['CA3'] if v != u]
-            # FIX 2: Increased k from 6 to 10 to ensure a robust recurrent core
-            targets = random.sample(possible_targets, k=min(10, len(possible_targets)))
+            targets = random.sample(possible_targets, k=min(GRAPH['ca3_recurrent'], len(possible_targets)))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -65,8 +82,7 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
     for u in regions['CA3']:
         u_data = G.nodes[u]
         if u_data['ntype'] == 'excitatory':
-            # FIX 2: Increased k from 5 to 8 to avoid information bottlenecks
-            targets = random.sample(regions['CA1'], k=min(8, len(regions['CA1'])))
+            targets = random.sample(regions['CA1'], k=min(GRAPH['ca3_ca1_out'], len(regions['CA1'])))
             for v in targets:
                 weight = calculate_edge_weight(u_data['ntype'], u_data['age'])
                 G.add_edge(u, v, weight=weight)
@@ -77,8 +93,7 @@ def create_hippocampal_graph(n_DG=40, n_CA3=30, n_CA1=30, n_immature=0):
         excitatory_targets = [n for n in node_list if G.nodes[n]['ntype'] == 'excitatory']
         for inh_node in inhibitory_hubs:
             inh_data = G.nodes[inh_node]
-            # FIX 2: Increased k from 5 to 10 so interneurons adequately cover local pools
-            targets = random.sample(excitatory_targets, k=min(10, len(excitatory_targets)))
+            targets = random.sample(excitatory_targets, k=min(GRAPH['inhibitory_out'], len(excitatory_targets)))
             for v in targets:
                 weight = calculate_edge_weight(inh_data['ntype'], inh_data['age'])
                 G.add_edge(inh_node, v, weight=weight)

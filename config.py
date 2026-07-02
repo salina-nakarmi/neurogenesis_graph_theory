@@ -1,92 +1,76 @@
 # =============================================================================
 # config.py
 # COMP 323 — Neurogenesis & Graph Theory Project
-# All parameters in one place — edit here, not inside source files
+#
+# WHAT THIS FILE DOES: single source of truth for every tunable number in the
+# project. Every value here is actually imported and used somewhere — if you
+# change GRAPH["n_DG"] or SIMULATION["local_ca3_age"], the simulation behaves
+# differently.
 # =============================================================================
 
 import os
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────
 BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
-DATA_RAW_DIR    = os.path.join(BASE_DIR, "data", "raw")
-DATA_PROC_DIR   = os.path.join(BASE_DIR, "data", "processed")
 RESULTS_FIG_DIR = os.path.join(BASE_DIR, "results", "figures")
 RESULTS_MET_DIR = os.path.join(BASE_DIR, "results", "metrics")
 
-# ── Baseline graph parameters (Days 3-4) ──────────────────────────────────────
+# ── Baseline graph parameters (Days 3-4) — used by graph_model.py ──────────
 GRAPH = {
-    "n_DG":              40,      # neurons in Dentate Gyrus
-    "n_CA3":             30,      # neurons in CA3
-    "n_CA1":             30,      # neurons in CA1
-    "inhibitory_ratio":  0.20,    # 20% of neurons are inhibitory interneurons
-    "seed":              42,      # random seed for reproducibility
+    "n_DG":  40,
+    "n_CA3": 30,
+    "n_CA1": 30,
+    "n_immature": 0,          # mature baseline for Week 1 connectivity analysis
+    "seed": 42,
 
-    # Edge connectivity rules (biological)
-    "dg_ca3_out":        5,       # each DG excitatory → ~5 CA3 targets (mossy fibers)
-    "ca3_recurrent":     8,       # each CA3 excitatory → ~8 CA3 targets (recurrent)
-    "ca3_ca1_out":       6,       # each CA3 excitatory → ~6 CA1 targets (Schaffer)
-    "inhibitory_out":    4,       # each inhibitory → ~4 local excitatory targets
+    # Edge fan-out per node type (mirrors graph_model.py's wiring rules)
+    "dg_ca3_out":     8,
+    "ca3_recurrent":  10,
+    "ca3_ca1_out":    8,
+    "inhibitory_out": 10,
 
-    # Edge weight ranges
-    "weight_exc_min":    0.5,     # excitatory synapse min strength
-    "weight_exc_max":    1.0,     # excitatory synapse max strength
-    "weight_inh_min":   -0.8,     # inhibitory synapse min (negative)
-    "weight_inh_max":   -0.3,     # inhibitory synapse max (negative)
+    # Synaptic strength range (excitatory magnitude before sign is applied)
+    "synaptic_strength_min": 0.5,
+    "synaptic_strength_max": 0.9,
 }
 
-# ── Neurogenesis simulation parameters (Days 8-9) ─────────────────────────────
+# ── Neurogenesis simulation parameters (Days 8-9) — used by simulation.py ──
 SIMULATION = {
-    "n_new_neurons":        50,   # total new neurons to add
-    "new_neuron_init_age":  0.1,  # starting age attribute
-    "new_neuron_init_k":    2,    # initial number of connections
+    "n_newborns": 50,
+    "new_neuron_init_age": 0.1,
 
-    # New neuron edge weights (weak — immature synapses)
-    "new_weight_min":       0.1,
-    "new_weight_max":       0.3,
+    "strategies": ["Random", "Preferential", "Local"],
 
-    # Attachment strategies to compare
-    "strategies": ["random", "preferential", "local"],
+    # Local-attachment maturation thresholds (brief §6.2 / Assumption B2):
+    # age < local_dg_only_age        -> connect within DG only
+    # local_dg_only_age <= age < local_ca3_age -> expand to CA3
+    # age >= local_ca3_age           -> full connectivity (adds CA1 too)
+    "local_dg_only_age": 0.3,
+    "local_ca3_age":     0.7,
+    "age_increment":     0.05,   # age gained per simulation timestep
 
-    # Local attachment age thresholds
-    "local_dg_only_age":    0.3,  # age < 0.3: connect within DG only
-    "local_ca3_age":        0.7,  # age 0.3–0.7: expand to CA3
-    # age >= 0.7: full connectivity
+    # Checkpoints at which the expensive metrics (fundamental circuits,
+    # planarity) are computed, per brief §7 Propositions 1-3 (t=0,25,50)
+    "checkpoints": [0, 25, 50],
 
-    # Age increment per timestep
-    "age_increment":        0.05,
+    "n_cascade_trials": 100,     # Monte-Carlo trials for the signal cascade
 }
 
-# ── Metrics to track (Days 10-11) ─────────────────────────────────────────────
-METRICS = [
-    "avg_clustering_coefficient",
-    "avg_shortest_path_length",
-    "degree_assortativity",
-    "vertex_connectivity",
-    "num_fundamental_circuits",
-]
-
-# ── Visualization settings ─────────────────────────────────────────────────────
+# ── Visualization settings — used by connectivity.py's visualize_connectivity() ──
 VIZ = {
     "node_colors": {
-        "DG":  "#534AB7",    # purple
-        "CA3": "#185FA5",    # blue
-        "CA1": "#BA7517",    # amber
+        "DG":  "#4A69BD",
+        "CA3": "#10AC84",
+        "CA1": "#5f27cd",
     },
-    "cut_vertex_color":  "#E84040",    # red — critical neurons
-    "bridge_color":      "#E84040",    # red — critical synapses
-    "tree_edge_color":   "#1D9E75",    # green — spanning tree
-    "new_neuron_color":  "#FFB703",    # gold — newly added neurons
-    "fig_dpi":           150,
-    "fig_size_wide":     (16, 5),
-    "fig_size_quad":     (16, 12),
 }
 
-# ── Report strings ─────────────────────────────────────────────────────────────
+# ── Report strings ──────────────────────────────────────────────────────────
 PROJECT = {
-    "title":     "Neurogenesis & Graph Theory",
-    "subtitle":  "Simulating New Neuron Integration in Hippocampal Networks",
-    "course":    "COMP 323 — Graph Theory",
-    "university":"Kathmandu University",
-    "team":      "Group B",
-    "reference": "Narsingh Deo, Graph Theory (Dover, 2016)",
+    "title":      "Neurogenesis & Graph Theory",
+    "subtitle":   "Simulating New Neuron Integration in Hippocampal Networks",
+    "course":     "COMP 323 — Graph Theory",
+    "university": "Kathmandu University",
+    "team":       "Group B",
+    "reference":  "Narsingh Deo, Graph Theory (Dover, 2016)",
 }

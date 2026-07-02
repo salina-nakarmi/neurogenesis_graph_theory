@@ -38,10 +38,13 @@ import pickle
 
 # ── import your graph_model ───────────────────────────────────────────────────
 from graph_model import create_hippocampal_graph
+from config import RESULTS_FIG_DIR, RESULTS_MET_DIR
 
-# ── output directory ──────────────────────────────────────────────────────────
-OUT_FIG = os.path.join(os.path.dirname(__file__), "..", "results", "figures")
-OUT_DAT = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
+# ── output directory (previously assumed a nonexistent src/ subfolder via
+#    "../results/figures" — now resolved from config.py, which matches the
+#    project's actual flat layout) ──────────────────────────────────────────
+OUT_FIG = RESULTS_FIG_DIR
+OUT_DAT = RESULTS_MET_DIR
 os.makedirs(OUT_FIG, exist_ok=True)
 os.makedirs(OUT_DAT, exist_ok=True)
 
@@ -544,7 +547,7 @@ def visualize_connectivity(G: nx.DiGraph, G_und: nx.Graph,
     ax.spines[["top","right"]].set_visible(False)
 
     plt.tight_layout()
-    out = os.path.join(OUT_FIG, "day5_6_connectivity.png")
+    out = os.path.join(OUT_FIG, "connectivity.png")
     plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"\n  Figure saved → {out}")
