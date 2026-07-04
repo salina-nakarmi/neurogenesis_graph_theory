@@ -465,8 +465,8 @@ def visualize_connectivity(G: nx.DiGraph, G_und: nx.Graph,
 
     fig, axes = plt.subplots(2, 2, figsize=(16, 11))
     fig.suptitle(
-        "COMP 323 — Days 5-6: Connectivity & Planarity Analysis\n"
-        "Unit 3 (Connectivity) + Unit 2 (Spanning Trees)",
+        "Connectivity & Planarity Analysis\n"
+        "(Connectivity) + (Spanning Trees)",
         fontsize=13, fontweight="bold"
     )
 

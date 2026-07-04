@@ -22,6 +22,9 @@ propositions in the brief (§7):
   - Fundamental_Circuits, Is_Planar, at t=0/25/50 only, i.e. config
     SIMULATION["checkpoints"] — these are cheap but not free, and the
     brief only asks us to verify them at those 3 checkpoints (Prop 2, 3).
+    t=0 is logged explicitly before any newborn is added, so each
+    strategy's log is self-contained (previously t=0 had to be borrowed
+    from connectivity.py's separate baseline run).
 
 Undirected conversion uses connectivity.py's to_undirected_abs(), matching
 Assumption C2 in the brief (metrics computed on the undirected graph with
@@ -129,9 +132,39 @@ def run_neurogenesis_experiment(strategy_name, n_newborns=None, return_graph=Fal
     n_newborns = SIMULATION["n_newborns"] if n_newborns is None else n_newborns
     checkpoints = set(SIMULATION["checkpoints"])
 
+    # Re-seed here (not just once at graph_model import time) so every
+    # strategy starts from an IDENTICAL baseline graph. Without this,
+    # whichever strategy runs first consumes random-module state that the
+    # next strategy's create_hippocampal_graph() call inherits — meaning
+    # "baseline" silently differed strategy to strategy (caught via the
+    # t=0 fundamental-circuit counts not matching across strategies).
+    random.seed(GRAPH["seed"])
+    np.random.seed(GRAPH["seed"])
+
     G, regions, _ = create_hippocampal_graph(n_immature=0)
     immature_tracker = []  # nodes still maturing, only used by "Local"
     logs = []
+
+    # ── t=0 baseline checkpoint, logged BEFORE any newborn is added ──
+    # (previously missing: the loop started at i=1, so t=0 was never
+    # recorded here and had to be borrowed from connectivity.py's
+    # separate run — same seed/config so numerically identical, but not
+    # self-contained. Now every strategy's log starts from its own t=0.)
+    G_und0 = to_undirected_abs(G)
+    circuits0 = _fundamental_circuits(G_und0)
+    is_planar0, _ = nx.check_planarity(G_und0)
+    logs.append({
+        'Strategy': strategy_name,
+        'Newborns_Added': 0,
+        'Kappa': nx.node_connectivity(G_und0) if nx.is_connected(G_und0) else 0,
+        'Lambda': nx.edge_connectivity(G_und0) if nx.is_connected(G_und0) else 0,
+        'Min_Degree': min(dict(G_und0.degree()).values()),
+        'Avg_Degree': round(np.mean(list(dict(G_und0.degree()).values())), 3),
+        'Clustering_Coeff': round(nx.average_clustering(G_und0), 4),
+        'Avg_Shortest_Path': _avg_shortest_path(G_und0),
+        'Fundamental_Circuits': circuits0,
+        'Is_Planar': is_planar0,
+    })
 
     for i in range(1, n_newborns + 1):
         new_node = max(G.nodes()) + 1
