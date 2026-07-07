@@ -1,4 +1,9 @@
 """
+functional_simulation.py — bonus extension (gestures at Unit 7 / signal
+propagation, mentioned but not detailed in the brief's syllabus table).
+Not one of the five core deliverables — keep or cut depending on time
+budget before the Days 12-13 report is due.
+
 WHAT THIS FILE DOES: after the 50-neuron integration loop finishes (using
 the *actual* wiring rules from simulation.py — this used to re-implement
 its own copy of the Random/Preferential/Local rules, which had drifted
@@ -8,6 +13,11 @@ to max_steps, checking whether/when the signal reaches CA1. Repeats
 n_cascade_trials times per strategy and reports mean spread % and mean
 latency to CA1.
 """
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 import random

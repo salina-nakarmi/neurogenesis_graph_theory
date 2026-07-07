@@ -32,6 +32,11 @@ absolute-value weights) — this used to be done two different, inconsistent
 ways across files.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import networkx as nx
 import numpy as np
 import random
