@@ -185,6 +185,16 @@ pytest tests/ -v
 - Pelkey et al. (2017) — Hippocampal GABAergic inhibitory interneurons
 - Turrigiano (2008) — Synaptic homeostasis
 - Barabási & Albert (1999) — Emergence of scaling in random networks
+- Watts & Strogatz (1998) — Collective dynamics of small-world networks
+  *(grounds Proposition 1: "preserves small-world structure" — high
+  clustering + short average path length — is Watts-Strogatz terminology,
+  not our own; this paper was missing from the original reference list.)*
+- DeFelipe (2012) — Cortical/hippocampal excitatory:inhibitory ratio
+  *(grounds the 80%/20% excitatory:inhibitory split used in `config.py`.
+  Note: Pelkey et al. (2017) reports a narrower ~10–15% inhibitory
+  estimate specific to local hippocampal interneurons; DeFelipe's ~20%
+  figure is the more commonly used convention in computational models
+  and is the one our `inhibitory_ratio` actually matches.)*
 
 ---
 
