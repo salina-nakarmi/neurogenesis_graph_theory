@@ -147,7 +147,7 @@ def plot_and_save_graph(G, regions, immature_nodes):
 
     nx.draw_networkx_nodes(G, pos, node_color=colors, node_size=sizes, alpha=0.9)
     nx.draw_networkx_edges(G, pos, arrowstyle='->', arrowsize=8, 
-                           edge_color='#D2D2D2', width=0.4, alpha=0.4)
+                           edge_color="#3A3A3A", width=0.4, alpha=0.4)
 
     legend_elements = [
         mpatches.Patch(color='#4A69BD', label='Mature DG Excitatory'),
